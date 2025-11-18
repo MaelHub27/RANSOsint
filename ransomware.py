@@ -83,7 +83,7 @@ class RANSOsint:
                 all_domains += self.has_been_ransomwared[victim_domains]
                 cursor += 1
                 if cursor == length:
-                    all_domains += "."
+                    all_domains += ""
                 elif cursor == length - 1:
                     all_domains += " and "
                 else:
