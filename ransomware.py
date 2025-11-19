@@ -1,8 +1,8 @@
 import requests
 import sys
 import json
-sys.path.insert(0, "../DDOSint/src/")
-from alert_sender import AlertSender 
+from alert_sender import AlertSender
+import time
 
 class RANSOsint:
     
@@ -14,7 +14,7 @@ class RANSOsint:
             } # API urls used to detect ransomware attacks
         self.json_response = {} # Response body from each API
         if len(sys.argv) != 5:
-            print(f"Usage : {sys.argv[0]} <domain_file.json> <sender_mail> <sender_password> <receiver_mail>")
+            print(f"\r\nInvalid number of arguments (expected 4) \r\n\r\nUsage : python3 {sys.argv[0]} <domains_file.json> <sender_mail> <sender_mail_password> <receiver_mail> \r\n")
             exit(1)
         else :
             with open(sys.argv[1]) as f:
@@ -23,23 +23,20 @@ class RANSOsint:
         self.receiver_mail = sys.argv[4]
         self.has_been_ransomwared = {} # Domains that have been ransomwared
             
-    def get_responses(self): 
+    def get_responses(self): # Used to get all json body from APIs
         for key in self.api_urls:
             try:
-                # Make a GET request to the API endpoint using requests.get()
                 response = requests.get(self.api_urls[key], timeout=5)
                 
-                # Check if the request was successful (status code 200)
                 if response.status_code == 200:
                     self.json_response[key] = response.json()
                 else:
                     print('Error:', response.status_code)
             except requests.exceptions.Timeout as e:
             
-                # Handle any network-related errors or exceptions
                 print('Error:', e)    
     
-    def get_ransom_from_api(self, apikey: str): # Check if a given domain is present in a response for a certain api
+    def get_ransom_from_api(self, apikey: str): # Check if a given domain is present in a response body from a certain api
         domain_name = None
         url = None
         group = None
@@ -55,20 +52,11 @@ class RANSOsint:
         for domain in self.domains["domains"]:    
             for victims in self.json_response[apikey]:
                 if domain in victims[domain_name]:
-                    print(f"\r\n Warning : The domain {domain} has been found in the ransomware list from the {apikey} API. \r\n")
-                    claim_url = " Link to the claim url : " + victims[url] + "\r\n"
-                    print(claim_url)
-                    attacker_group = " Attacker Group : " + victims[group] + "\r\n"
-                    print(attacker_group)
-                    self.has_been_ransomwared[domain] = domain
-                    #return True
-            print(f"\r\n Domain {domain} not found in ransomware list from {apikey}. \r\n")
-            #return False      
+                    claim_url = victims[url]
+                    attacker_group = "attacker group : " + victims[group]
+                    self.has_been_ransomwared[domain] = claim_url + " by " + attacker_group
 
     def get_ransom_info(self): # Check if ay of the domain in the entry file <domains.json> has been ransmowared
-        if len(self.json_response) == 0:
-            print("\r\n Please get all APIs' list responses before analysis (with the method get_responses).\r\n")
-            return
         for apikey in self.json_response:
             self.get_ransom_from_api(apikey)
     
@@ -78,22 +66,31 @@ class RANSOsint:
         length = len(self.has_been_ransomwared)
         if  length > 0:
             all_domains = ""
+            informations = ""
             cursor = 0
             for victim_domains in self.has_been_ransomwared:
-                all_domains += self.has_been_ransomwared[victim_domains]
+                all_domains += victim_domains
+                informations += victim_domains + " with link to the claim url : " + self.has_been_ransomwared[victim_domains]
                 cursor += 1
                 if cursor == length:
                     all_domains += ""
+                    informations += ""
                 elif cursor == length - 1:
                     all_domains += " and "
+                    informations += " and "
                 else:
                     all_domains += ", "
-            self.alert_sender.send_mail(self.receiver_mail, "Ransomware", all_domains)
+                    informations += ", "
+            self.alert_sender.send_mail(self.receiver_mail, "Ransomware", all_domains, informations)
+        elif length == 0:
+            print("All given domains not found in ransomware lists, no mail sent.")
+            #exit(1)
+        else:
+            print("Something went wrong... Exiting.")
+            exit(1)
 
 if __name__ == "__main__":
     a = RANSOsint()
-    a.send_ransom_info()
-    #tests
-    # maresalogistica for 1st API
-    # for 2nd API
-    # bew
+    while True:
+        a.send_ransom_info()
+        time.sleep(5184000) #Execute bot every day (1d = 24 * 60 * 3600 seconds = 5184000 seconds)
