@@ -1,8 +1,14 @@
 {
     "domains": [
-        "thales",
-        "dassault",
-        "orange",
-        "airbus"
+        "adp.com", 
+        "thalesgroup.com", 
+        "safran-group.com", 
+        "DGAC", 
+        "bassetti-group.com", 
+        "naval-group.com", 
+        "dassault-aviation.com", 
+        "dalcans.com", 
+        "airfranceklm.com", 
+        "collinsaerospace.com"
     ]
 }
